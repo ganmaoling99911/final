@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>水土保持监测 交互式复习指南</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chosen Palette: Calm Study Palette -->
+    <!-- Application Structure Plan: 本应用采用顶部标签页导航的单页应用(SPA)结构。主要分为五个部分：“复习总览”、“名词解释”、“填空题”、“简答题”和“论述题”。这种结构与源报告的题型分类完全对应，符合用户的学习心智模型。用户可以通过点击标签页在不同题型之间自由切换，专注于特定模块的复习。在每个模块内部，通过不同的交互设计（如点击揭示答案的“闪卡”模式、折叠展开的“手风琴”模式）来提升学习的主动性和趣味性，从而提高复习效率。之所以选择这种结构，是因为它能将静态的文本资料转化为一个动态的、以用户为中心的学习工具，非常适合考前冲刺。 -->
+    <!-- Visualization & Content Choices: 1. **复习总览 (甜甜圈图)**: 目标-宏观概览，方式-Chart.js绘制的Canvas图表，交互-鼠标悬浮提示。理由：将各题型数量可视化，让用户对复习内容的分布一目了然。2. **名词解释 (闪卡)**: 目标-记忆与自测，方式-HTML/JS实现的卡片列表，交互-点击卡片标题显示/隐藏定义。理由：模拟抽背效果，鼓励主动回忆而非被动阅读。3. **填空/简答/论述题 (手风琴)**: 目标-理解与自测，方式-HTML/JS实现的折叠列表，交互-点击问题显示/隐藏答案。理由：保持界面整洁，让用户能聚焦于单个问题，避免大段文字带来的压迫感。所有内容均严格遵循无SVG、无Mermaid JS的要求。 -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', 'Helvetica Neue', 'Helvetica', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', '微软雅黑', Arial, sans-serif;
+        }
+        .tab.active {
+            border-color: #0d9488; /* teal-600 */
+            color: #0d9488;
+            font-weight: 600;
+        }
+        .content-section {
+            display: none;
+        }
+        .content-section.active {
+            display: block;
+        }
+        .accordion-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s ease-in-out, padding 0.5s ease-in-out;
+            padding: 0 1.5rem;
+        }
+        .accordion-content.open {
+            max-height: 1000px; /* Adjust as needed */
+            padding: 1rem 1.5rem;
+        }
+        .term-definition {
+            display: none;
+        }
+        .term-item.open .term-definition {
+            display: block;
+        }
+        .fill-blank {
+            color: #0d9488;
+            font-weight: 600;
+            border-bottom: 2px dotted #0d9488;
+            padding: 0 4px;
+        }
+        .chart-container {
+            position: relative;
+            height: 40vh;
+            max-height: 350px;
+            width: 100%;
+            max-width: 350px;
+            margin: 2rem auto;
+        }
+    </style>
+</head>
+<body class="bg-stone-50 text-slate-800">
+
+    <div class="container mx-auto p-4 sm:p-6 md:p-8 max-w-5xl">
+        <header class="text-center mb-8">
+            <h1 class="text-3xl sm:text-4xl font-bold text-teal-800">水土保持监测 核心考点复习指南</h1>
+            <p class="text-slate-500 mt-2">一个为高效备考设计的交互式学习工具</p>
+        </header>
+
+        <nav class="flex border-b-2 border-slate-200 mb-8 justify-center">
+            <button class="tab py-4 px-6 text-slate-600 border-b-4 border-transparent hover:bg-stone-100 transition-colors duration-300" data-target="overview">复习总览</button>
+            <button class="tab py-4 px-6 text-slate-600 border-b-4 border-transparent hover:bg-stone-100 transition-colors duration-300" data-target="terms">名词解释</button>
+            <button class="tab py-4 px-6 text-slate-600 border-b-4 border-transparent hover:bg-stone-100 transition-colors duration-300" data-target="fill-in">填空题</button>
+            <button class="tab py-4 px-6 text-slate-600 border-b-4 border-transparent hover:bg-stone-100 transition-colors duration-300" data-target="short-answer">简答题</button>
+            <button class="tab py-4 px-6 text-slate-600 border-b-4 border-transparent hover:bg-stone-100 transition-colors duration-300" data-target="essay">论述题</button>
+        </nav>
+
+        <main>
+            <!-- 复习总览 -->
+            <section id="overview" class="content-section">
+                 <div class="bg-white p-6 rounded-xl shadow-lg border border-slate-100">
+                    <h2 class="text-2xl font-bold text-teal-700 mb-4 text-center">考点结构概览</h2>
+                    <p class="text-center text-slate-600 mb-4">本指南涵盖了四大核心题型。下面的图表展示了各题型的题目数量分布，助您合理分配复习精力。将鼠标悬停在图表板块上可查看具体数量。</p>
+                    <div class="chart-container">
+                        <canvas id="overviewChart"></canvas>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- 名词解释 -->
+            <section id="terms" class="content-section">
+                <div class="bg-white p-6 rounded-xl shadow-lg border border-slate-100">
+                    <h2 class="text-2xl font-bold text-teal-700 mb-4">一、名词解释</h2>
+                    <p class="text-slate-600 mb-6">点击下列术语可显示或隐藏其定义，像使用抽背卡片一样进行复习。</p>
+                    <div id="terms-list" class="space-y-3"></div>
+                </div>
+            </section>
+
+            <!-- 填空题 -->
+            <section id="fill-in" class="content-section">
+                <div class="bg-white p-6 rounded-xl shadow-lg border border-slate-100">
+                    <h2 class="text-2xl font-bold text-teal-700 mb-4">二、填空题</h2>
+                    <p class="text-slate-600 mb-6">先尝试回忆答案，然后点击“显示答案”按钮进行核对。</p>
+                    <div id="fill-in-list" class="space-y-4"></div>
+                </div>
+            </section>
+
+            <!-- 简答题 -->
+            <section id="short-answer" class="content-section">
+                <div class="bg-white p-6 rounded-xl shadow-lg border border-slate-100">
+                    <h2 class="text-2xl font-bold text-teal-700 mb-4">三、简答题</h2>
+                    <p class="text-slate-600 mb-6">点击问题标题展开查看详细答案解析。</p>
+                    <div id="short-answer-list" class="space-y-3"></div>
+                </div>
+            </section>
+
+            <!-- 论述题 -->
+            <section id="essay" class="content-section">
+                <div class="bg-white p-6 rounded-xl shadow-lg border border-slate-100">
+                    <h2 class="text-2xl font-bold text-teal-700 mb-4">四、论述题</h2>
+                     <p class="text-slate-600 mb-6">点击问题标题展开查看详细答案解析。</p>
+                    <div id="essay-list" class="space-y-3"></div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        const data = {
+            terms: [
+                { term: "水土保持效益", definition: "指为防治水土流失而采取各项治理措施后，所取得的生态效益、经济效益和社会效益的评估和分析计算。其中，保水保土效益是获得一切其他效益的前提和基础，因此在水土保持部门称其为基础效益。" },
+                { term: "经济效益", definition: "指水土流失区内，经过水土保持治理，提高(或增加)了粮食、果品、饲草、枝条、木材等的产量，以及这些初级产品在未加工转化前的产值收益。" },
+                { term: "表土保护率 (percentage of protected topsoil)", definition: "是指项目水土流失防治责任范围内保护的表土数量占可剥离表土总量的百分比。它反映了生产建设项目对地表扰动破坏的程度。" },
+                { term: "水土流失总治理度 (percentage of controlled soil erosion area)", definition: "是指水土流失防治责任范围内水土流失治理达标面积占水土流失总面积的百分比，反映了生产建设项目对防治责任范围内水土流失的治理程度。" },
+                { term: "土壤流失控制比 (proportion of soil erosion control)", definition: "是指项目水土流失防治责任范围内容许土壤流失量与治理后的每平方千米年平均土壤流失量之比。它反映了水土流失治理措施控制土壤流失的相对大小。" },
+                { term: "渣土防护率 (percentage of blocked dregs and soil)", definition: "是指项目水土流失防治责任范围内，采取措施实际挡护的永久弃渣、临时堆土量占工程永久弃渣和临时堆土总量的百分比。" },
+                { term: "林草植被恢复率 (percentage of revered forestry and grass)", definition: "是指项目水土流失防治责任范围内，林草类植被面积占可恢复植被面积的百分比。" },
+                { term: "林草覆盖率 (percentage of forestry and grass coverage)", definition: "是指项目水土流失防治责任范围内，林草类植被面积占总面积的百分比。它反映工程建设中绿化和生态恢复程度的大小。" },
+                { term: "土壤侵蚀模数 (soil erosion modulus)", definition: "指单位时段内单位面积地表土壤及其母质被侵蚀的总量，通常以 t/(hm²·a) 为单位。" },
+                { term: "容许土壤流失量 (soil loss tolerance)", definition: "指为保持土壤资源永续利用和维持可持续土地生产能力确定的土壤流失量上线。" },
+                { term: "沟壑密度 (gully density)", definition: "指单位面积内分布的沟道总长度，通常以 km/km² 为单位。" },
+                { term: "降雨侵蚀力", definition: "是表达雨滴溅蚀、扰动薄层水流，增加径流冲刷和挟带搬运泥沙的能力，它并非物理学中“力”的概念，而是降雨侵蚀作用强弱的一个表达指标。" },
+                { term: "泥石流", definition: "是一种含有大量泥沙和石块等固体物质的、具有强大破坏力的特殊洪流。" },
+                { term: "滑坡", definition: "指斜坡上的土体或者岩体，在重力作用下，沿着一定的软弱面或者软弱带，整体或者分散地顺坡向下滑动的自然现象。" },
+                { term: "起沙风", definition: "一般是指在干松裸露、起伏平缓的地表条件下，离地面2m高处沙粒开始运动的最小风速。" },
+            ],
+            fillIns: [
+                { question: "1. 生产建设项目水土保持监测具有 {BLANK}、{BLANK} 和 {BLANK} 三个特点。", answers: ["复杂性", "短期性", "困难性"] },
+                { question: "2. 生产建设项目水土保持监测的分区原则包括不同区之间的 {BLANK}、同一区内部的 {BLANK}、{BLANK} 和 {BLANK}。", answers: ["显著差异性", "明显一致性", "多级分区的系统性", "兼顾行政区域的完整性"] },
+                { question: "3. 水土保持监测的基本内容包括 {BLANK}、{BLANK}、{BLANK} 和 {BLANK} 等四个方面。", answers: ["水土流失影响因素", "水土流失状况", "水土流失危害", "水土保持措施及效益"] },
+                { question: "4. 泥石流的形成必须具备三个条件：{BLANK}、{BLANK} 和 {BLANK}。", answers: ["充足的固体碎屑物质", "充足的水源", "有利的地形条件"] },
+                { question: "5. 影响滑坡发育的成因主要包括 {BLANK}、{BLANK}、{BLANK}、{BLANK} 和 {BLANK}。", answers: ["地形", "岩性", "地质构造与地震", "气象水文", "人类活动"] },
+                { question: "6. 中国土壤流失方程(CSLE)为 A = R·K·L·S·B·E·T，其中B代表 {BLANK}，E代表 {BLANK}，T代表 {BLANK}。", answers: ["植被覆盖与生物措施因子", "工程措施因子", "耕作措施因子"] },
+                { question: "7. 我国荒漠化和沙化监测以 {BLANK} 为一个监测周期。", answers: ["5年"] },
+                { question: "8. 重力侵蚀多发生于坡度在 {BLANK} 以上的山地和丘陵以及沟坡和河谷较陡的岸边。", answers: ["25°"] },
+                { question: "9. 我国水土保持监测网络包括四级监测机构和监测点，第一级是 {BLANK}。", answers: ["水利部水土保持监测中心"] },
+                { question: "10. 水土保持措施可分为 {BLANK}、{BLANK} 和 {BLANK}。", answers: ["工程措施", "林草措施", "耕作措施"] },
+            ],
+            shortAnswers: [
+                { 
+                    question: "1. 简述生产建设项目水土保持监测的特点。",
+                    answer: `<ul>
+                        <li class="mb-2"><strong class="text-slate-700">复杂性：</strong>生产建设项目种类繁多，性质和形态各异，很难在监测上统一标准要求，从而体现出监测内容、监测方法的复杂性。</li>
+                        <li class="mb-2"><strong class="text-slate-700">短期性：</strong>生产建设项目建设的年限一般均较短，要求水土保持监测必须提前做出计划安排、精心设置监测内容、采用适宜监测方法和先进手段，才能提高监测结果的准确性。</li>
+                        <li><strong class="text-slate-700">困难性：</strong>一是实时监测的时间极为短暂，往往难以重复实施，获取准确的监测数据难度加大；二是在监测实施过程中，往往会和工程建设相互产生干扰，很难取得工程项目业主及参与建设者的理解与支持。</li>
+                    </ul>`
+                },
+                { 
+                    question: "2. 简述滑坡的主要成因。",
+                    answer: `<ul>
+                        <li class="mb-2"><strong class="text-slate-700">地形：</strong>需具有一定有效临空面的斜坡，为滑坡提供了滑动空间。</li>
+                        <li class="mb-2"><strong class="text-slate-700">岩性：</strong>由软岩类构成的斜坡，或软硬互层且层倾向与坡向一致时，极利于滑坡发育。</li>
+                        <li class="mb-2"><strong class="text-slate-700">地质构造与地震：</strong>坡体内部存在软弱结构面，或地震破坏坡体结构，都可能诱发滑坡。</li>
+                        <li class="mb-2"><strong class="text-slate-700">气象水文：</strong>降水和地表水、地下水活动会增加滑体自重、降低滑动面强度，是主要诱发因素。</li>
+                        <li><strong class="text-slate-700">人类活动：</strong>不合理的工程活动，如开挖坡脚、坡上堆载、乱砍滥伐等，会加快滑坡的发生。</li>
+                    </ul>`
+                },
+                { 
+                    question: "3. 简述径流小区按布设目的可分为哪几类？",
+                    answer: `<ul>
+                        <li class="mb-2"><strong class="text-slate-700">裸地小区：</strong>主要监测目的是测定土壤可蚀性，同时可作为研究植被覆盖影响的对照。</li>
+                        <li class="mb-2"><strong class="text-slate-700">农地小区：</strong>监测目的是测定当地代表性作物类型、耕作制度或管理方式下的径流和土壤流失量。</li>
+                        <li class="mb-2"><strong class="text-slate-700">水土保持措施小区：</strong>监测目的是测定实施水土保持措施下的径流和土壤流失量，用以评价措施的保水保土效益。</li>
+                        <li><strong class="text-slate-700">坡长或坡度小区：</strong>监测目的是测定不同坡长或坡度下的径流和土壤流失量，评价地形对土壤侵蚀的影响。</li>
+                    </ul>`
+                },
+            ],
+            essays: [
+                {
+                    question: "1. 论述水土保持监测的目的及意义(作用)。",
+                    answer: `<p class="mb-4"><strong>监测目的：</strong><br>随着水土保持工作的不断发展，监测的主要目的可以概括为查清水土流失现状，评估水土保持生态建设状况和效益，跟踪生产建设项目水土保持动态，为政策法规和科学管理服务，为社会公众提供服务等几个方面内容。</p>
+                             <p><strong>意义(作用)：</strong></p>
+                             <ul class="list-disc list-inside mt-2 space-y-2">
+                                <li><strong>在政府决策中发挥重要作用：</strong>为政府制定水土保持相关政策、规划和决策提供科学依据。</li>
+                                <li><strong>在经济社会发展中发挥重要作用：</strong>为合理利用水土资源、优化产业布局、保障生态安全和经济社会可持续发展提供支持。</li>
+                                <li><strong>在社会公众服务中发挥重要作用：</strong>向社会公众公告水土流失状况、危害及防治情况，提高全民水土保持意识，为公众参与水土保持工作提供信息服务。</li>
+                             </ul>`
+                },
+                {
+                    question: "2. 论述荒漠化监测的目的及意义。",
+                    answer: `<p>荒漠化监测目的主要为：了解和掌握荒漠化土地发展现状、动态及防治方法的积极性和准确性；为各级政府和决策部门提供宏观理论依据；为防治荒漠化与防沙治沙体系的制定和调整、国家土地资源的合理开发和保护利用及可持续发展战略的实现提供基础数据；同时，也是履行《联合国防治荒漠化公约》，开展国际交流与合作的需要；荒漠化监测在环境质量评估和土地管理中也占有重要地位。就荒漠化土地整治而言，荒漠化监测是防治荒漠化方针制定的基础，能够用来判别防治效果，并对可能产生的负面影响进行及时预测。因此，荒漠化监测为加快推进生态文明建设，推动国家退化土地防治能力现代化，落实最严格生态环境保护制度，实施重大生态保护和修复工程，科学决策、合理保护、有效治理荒漠化和沙化土地提供依据。</p>`
+                },
+                {
+                    question: "3. 论述生产建设项目水土保持监测的主要任务(或内容)。",
+                    answer: `<p class="mb-2">生产建设项目水土保持监测的内容包括水土流失影响因素、水土流失状况、水土流失危害、水土保持措施和治理效果5个部分。其中，水土流失状况是重中之重。</p>
+                             <ul class="list-disc list-inside space-y-2">
+                                <li><strong>水土流失影响因素监测：</strong>监测项目建设对原地表、水土保持设施、植被的占压和损毁情况；项目征占地和水土流失防治责任范围变化情况；项目弃土(石、渣)场的占地面积、弃土(石、渣)量及堆放方式；项目取土(石、料)场的扰动面积及取料方式。</li>
+                                <li><strong>水土流失状况监测：</strong>水土流失状况包括水土流失的类型、形式、面积、分布及强度；各监测分区及其重点对象的土壤流失量。</li>
+                                <li><strong>水土流失危害监测：</strong>监测水土流失对主体工程造成危害的方式、数量和程度；水土流失掩埋冲毁农田、道路、居民点等的数量、程度；对高等级公路、铁路、输变电、输油(气)管线等重大工程造成的危害；生产建设项目造成的沙化、崩塌、滑坡、泥石流等灾害；对水源地、生态保护区、江河湖泊、水库、塘坝、航道的危害，直接进入江河湖泊的弃土(石、渣)情况。</li>
+                                <li><strong>水土保持措施实施情况及效果监测：</strong>监测内容包括植物措施的种类、面积、分布、生长状况、成活率、保存率和林草覆盖率；工程措施的类型、数量、分布和完好程度；临时措施的类型、数量和分布；主体工程和各项水土保持措施的实施进展情况；水土保持措施对主体工程安全建设和运行发挥的作用；水土保持措施对周边生态环境发挥的作用。</li>
+                             </ul>`
+                },
+                {
+                    question: "4. 论述新技术(遥感)在水土保持监测中的应用。",
+                    answer: `<p class="mb-2">遥感作为一种新兴技术，及时、客观、全面反馈地面信息的优势为新时期水土保持监测与评价提供了新的手段。卫星影像是解决水土流失与荒漠化问题的主要方法之一，通过解译卫星影像中的信息，了解水土流失与荒漠化的程度，遥感技术在水土流失调查中具有方便、快捷、可操作性强等特点，非常适合区域调查与制图。</p>
+                            <ul class="list-disc list-inside space-y-2">
+                                <li><strong>应用案例1：土地利用及其变化监测。</strong>利用遥感数据为主的多源数据集，进行土地利用和水土保持措施的识别与提取，计算水土流失因子，成为水土流失与荒漠化监测的重要工作内容。</li>
+                                <li><strong>应用案例2：水土保持措施监测。</strong>目前应用高分影像可以进行造林、梯田、工程护路等水保措施的监测，主要以面状和线状工程为主。</li>
+                                <li><strong>应用案例3：植被覆盖度信息提取。</strong>遥感能够提供不同时空尺度的植被覆盖及其动态变化信息，为实时、连续地监测与评估提供了技术支撑。</li>
+                                <li><strong>无人机遥感技术：</strong>具有飞行高度低、分辨率高、外业成本低、信息获取高速、即时性强和随时可操作的优势。能较好地应用于水土保持监测中，相对于传统的方法具有效率高、范围大等特点，能够高效、全面地完成水土保持监测任务。</li>
+                            </ul>`
+                }
+            ]
+        };
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const tabs = document.querySelectorAll('.tab');
+            const sections = document.querySelectorAll('.content-section');
+
+            // Initialize content
+            const termsList = document.getElementById('terms-list');
+            data.terms.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'term-item border border-slate-200 rounded-lg';
+                div.innerHTML = `
+                    <h3 class="term-title p-4 cursor-pointer font-semibold text-slate-700 hover:bg-stone-100 rounded-lg flex justify-between items-center">
+                        <span>${item.term}</span>
+                        <svg class="w-5 h-5 text-slate-400 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </h3>
+                    <div class="term-definition p-4 pt-0 text-slate-600 bg-stone-50 rounded-b-lg">
+                        <p>${item.definition}</p>
+                    </div>
+                `;
+                termsList.appendChild(div);
+            });
+
+            const fillInList = document.getElementById('fill-in-list');
+            data.fillIns.forEach((item, index) => {
+                const questionHtml = item.question.replace(/{BLANK}/g, '<span class="fill-blank-placeholder w-24 inline-block">_________</span>');
+                const div = document.createElement('div');
+                div.className = 'p-4 border border-slate-200 rounded-lg';
+                div.innerHTML = `
+                    <p class="question-text text-slate-800 leading-relaxed">${questionHtml}</p>
+                    <button class="toggle-answer-btn mt-3 px-4 py-2 text-sm font-semibold text-white bg-teal-600 rounded-md hover:bg-teal-700 transition-colors">显示答案</button>
+                `;
+                fillInList.appendChild(div);
+            });
+            
+            function createAccordion(list, containerId) {
+                const container = document.getElementById(containerId);
+                list.forEach(item => {
+                    const div = document.createElement('div');
+                    div.className = 'accordion-item border border-slate-200 rounded-lg overflow-hidden';
+                    div.innerHTML = `
+                        <h3 class="accordion-header p-4 cursor-pointer font-semibold text-slate-700 bg-white hover:bg-stone-100 flex justify-between items-center">
+                           <span>${item.question}</span>
+                           <svg class="w-5 h-5 text-slate-400 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </h3>
+                        <div class="accordion-content bg-stone-50 text-slate-600">${item.answer}</div>
+                    `;
+                    container.appendChild(div);
+                });
+            }
+
+            createAccordion(data.shortAnswers, 'short-answer-list');
+            createAccordion(data.essays, 'essay-list');
+
+            // Tab functionality
+            function switchTab(targetId) {
+                sections.forEach(section => {
+                    section.classList.remove('active');
+                });
+                tabs.forEach(tab => {
+                    tab.classList.remove('active');
+                });
+
+                document.getElementById(targetId).classList.add('active');
+                document.querySelector(`.tab[data-target="${targetId}"]`).classList.add('active');
+            }
+
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    switchTab(tab.dataset.target);
+                });
+            });
+
+            // Initial state
+            switchTab('overview');
+
+            // Interaction functionality
+            document.body.addEventListener('click', function(e) {
+                // Terminology flashcards
+                const termTitle = e.target.closest('.term-title');
+                if (termTitle) {
+                    termTitle.parentElement.classList.toggle('open');
+                    termTitle.querySelector('svg').classList.toggle('rotate-180');
+                }
+
+                // Fill-in-the-blanks
+                const answerBtn = e.target.closest('.toggle-answer-btn');
+                if (answerBtn) {
+                    const parent = answerBtn.parentElement;
+                    const questionTextEl = parent.querySelector('.question-text');
+                    const isShowing = answerBtn.textContent === '隐藏答案';
+                    const index = Array.from(fillInList.children).indexOf(parent);
+                    const itemData = data.fillIns[index];
+
+                    if (isShowing) {
+                        const questionHtml = itemData.question.replace(/{BLANK}/g, '<span class="fill-blank-placeholder w-24 inline-block">_________</span>');
+                        questionTextEl.innerHTML = questionHtml;
+                        answerBtn.textContent = '显示答案';
+                    } else {
+                        let answerIndex = 0;
+                        const answeredHtml = itemData.question.replace(/{BLANK}/g, () => `<span class="fill-blank">${itemData.answers[answerIndex++]}</span>`);
+                        questionTextEl.innerHTML = answeredHtml;
+                        answerBtn.textContent = '隐藏答案';
+                    }
+                }
+                
+                // Accordion for short answers and essays
+                const accordionHeader = e.target.closest('.accordion-header');
+                if (accordionHeader) {
+                    const content = accordionHeader.nextElementSibling;
+                    const svg = accordionHeader.querySelector('svg');
+                    content.classList.toggle('open');
+                    svg.classList.toggle('rotate-180');
+                }
+            });
+
+            // Chart.js initialization
+            const ctx = document.getElementById('overviewChart').getContext('2d');
+            const overviewData = {
+                labels: ['名词解释', '填空题', '简答题', '论述题'],
+                datasets: [{
+                    label: '题目数量',
+                    data: [data.terms.length, data.fillIns.length, data.shortAnswers.length, data.essays.length],
+                    backgroundColor: [
+                        'rgba(13, 148, 136, 0.7)',  // teal-600
+                        'rgba(245, 158, 11, 0.7)',  // amber-500
+                        'rgba(59, 130, 246, 0.7)', // blue-500
+                        'rgba(139, 92, 246, 0.7)'  // violet-500
+                    ],
+                    borderColor: [
+                        'rgba(15, 118, 110, 1)',  // teal-700
+                        'rgba(217, 119, 6, 1)',   // amber-600
+                        'rgba(37, 99, 235, 1)',  // blue-600
+                        'rgba(124, 58, 237, 1)'   // violet-600
+                    ],
+                    borderWidth: 1,
+                    hoverOffset: 8
+                }]
+            };
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: overviewData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 20,
+                                font: {
+                                    size: 14,
+                                    family: 'Inter'
+                                }
+                            }
+                        },
+                        tooltip: {
+                             callbacks: {
+                                label: function(context) {
+                                    let label = context.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed !== null) {
+                                        label += context.parsed + '道题';
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+</body> 
+</html>
